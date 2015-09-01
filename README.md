@@ -8,16 +8,13 @@ Nodejs acl
 var acl = new ACL();
 
 class Blog {
-  get acl_unique () {
+  get acl_id () {
     return 'blog:1'
-  }
-  constructor () {
-  
   }
 }
 
 class User {
-  get acl_unique () {
+  get acl_id () {
     return 'user:1'
   }
 }
