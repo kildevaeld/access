@@ -1,0 +1,27 @@
+{
+    "version": "1.6.0",
+    "compilerOptions": {
+        "target": "es6",
+        "isolatedModules": false,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "declaration": true,
+        "noImplicitAny": false,
+        "removeComments": false,
+        "noLib": false,
+        "preserveConstEnums": true,
+        "suppressImplicitAnyIndexErrors": true,
+        "outDir": "./lib",
+        "rootDir": "./src"
+    },
+    "filesGlob": [
+        "./src/**/*.ts",
+        "./**/*.tsx",
+        "!./node_modules/**/*.ts"
+    ],
+    "files": [
+        "./src/index.ts",
+        "./src/store.ts",
+        "./src/stores/sql.ts"
+    ]
+}
