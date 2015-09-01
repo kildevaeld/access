@@ -98,7 +98,7 @@ export class SQLStore implements IStore {
 			return Promise.reject<IRole>(new Error('role already exists!'))
 		}
 
-		return this._coTransaction(knex, function *(knex,thx) {
+		return this._coTransaction(knex, function *(knex, thx) {
 			var parentID = null
 			if (role.parent) {
 				let {id, name} = role.parent
@@ -114,13 +114,16 @@ export class SQLStore implements IStore {
 
 			}
 
-			role = _.pick(role, ['name', 'description']);
+			role = _.pick(role, ['name']);
 
 			if (parentID) role.parent_id = parentID
 
-			return <IRole>thx.insert(role)
+			return thx.insert(role)
 				.into(table)
 
+		}).then(function(i) {
+			if (!i) return null
+			return knex(table).where('id', i[0]).first();
 		})
 
 	}
@@ -130,7 +133,7 @@ export class SQLStore implements IStore {
 
 			let role = yield knex(table).where('name', name).first()
 
-			return role //.length ? role[0] : null
+			return role
 		})
 	}
 	addRule(role: IRole, rule: IPermission): Promise<IRole> {
@@ -158,12 +161,17 @@ export class SQLStore implements IStore {
 
 			}
 
-			yield knex(this._tables.joint)
+
+			return yield knex(this._tables.joint)
 				.transacting(thx).insert({
 					permission_id: perm.id,
 					role_id: role.id
 				})
 
+
+
+		}).then((r) => {
+			let role = knex(this._tables.roles).where('id', r[0]).first()
 
 			return role
 		});
@@ -190,13 +198,26 @@ export class SQLStore implements IStore {
 
 	_coTransaction(knex: Knex, fn: (knex: Knex, thx: any) => void): Promise<any> {
 		var self = this
-		return knex.transaction((thx) => {
+		return new Promise((resolve, reject) => {
+			knex.transaction((thx) => {
 
-			return co(function *() {
-				return yield fn.call(self, knex, thx)
-			}.bind(this)).then(thx.commit).catch(thx.rollback);
+				return co(function *() {
+					return yield fn.call(self, knex, thx)
+				}).then(function(result) {
+
+					return thx.commit()
+						.then(function() {
+
+							resolve(result)
+						})
+				}).catch(function(e) {
+					thx.rollback().then(function() {
+						reject(e)
+					})
+				});
 
 
+			})
 		})
 	}
 }

@@ -18,7 +18,7 @@ let acl = new ACL(store);
 
 class Test {
 	constructor () {
-		this.acl_unique = "test:1"
+		this.acl_id = "test:1"
 	}
 }
 
@@ -26,7 +26,7 @@ function User (name) {
 	this.name = name
 }
 
-User.prototype.acl_unique = "user:1"
+User.prototype.acl_id = "user:1"
 
 
 

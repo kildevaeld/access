@@ -23,7 +23,7 @@ export interface IPermission {
 }
 
 export interface IPermisiveable {
-	acl_unique?: string
+	acl_id?: string
 }
 
 export interface IRoleable extends IPermisiveable {
@@ -123,17 +123,17 @@ export class ACL implements IACL {
 	allow(role: string|IRoleable, resource: string|IPermisiveable, action: string, fn?: Predicate, silent:boolean = true ): IACL {
 		var self = this;
 
-		resource = (resource && (<IPermisiveable>resource).acl_unique) ?
-			(<IPermisiveable>resource).acl_unique : resource; 
+		resource = (resource && (<IPermisiveable>resource).acl_id) ?
+			(<IPermisiveable>resource).acl_id : resource; 
 
 		let p = co(function *() {
 			
 			let roles = []
-			if (typeof role !== 'string' && role.acl_unique) {
+			if (typeof role !== 'string' && role.acl_id) {
 
-				let irole = yield self.store.getRole(role.acl_unique)
+				let irole = yield self.store.getRole(role.acl_id)
 				if (!irole) {
-					irole = yield self.role(role.acl_unique);
+					irole = yield self.store.addRole({name:role.acl_id});
 				}
 
 				roles = [irole]
@@ -177,18 +177,18 @@ export class ACL implements IACL {
 
 		var self = this;
 		
-		resource = (resource && (<IPermisiveable>resource).acl_unique) ?
-			(<IPermisiveable>resource).acl_unique : resource; 
+		resource = (resource && (<IPermisiveable>resource).acl_id) ?
+			(<IPermisiveable>resource).acl_id : resource; 
 
 		return co(function *() {
 
 			let roles
 
-			if (typeof role !== 'string' && role.acl_unique) {
+			if (typeof role !== 'string' && role.acl_id) {
 
-				let irole = yield self.store.getRole(role.acl_unique)
+				let irole = yield self.store.getRole(role.acl_id)
 				if (!irole) {
-					irole = yield self.role(role.acl_unique);
+					irole = yield self.role(role.acl_id);
 				}
 
 				roles = [irole]
