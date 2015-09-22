@@ -5,6 +5,7 @@ import {IStore} from '../store'
 import {IRole, IPermission} from '../index'
 import * as _ from 'lodash'
 import co from 'co'
+
 export interface SQLStoreConfig extends Knex.Config {
 	roleTable?: string
 	permissionTable: string
@@ -138,18 +139,18 @@ export class SQLStore implements IStore {
 	}
 	addRule(role: IRole, rule: IPermission): Promise<IRole> {
 		var knex = this.knex, table = this._tables.permissions
-
+		var self = this
 		return this._coTransaction(knex, function *(knex, thx) {
 
-			role = yield knex(this._tables.roles)
+			role = yield knex(self._tables.roles)
 				.transacting(thx).where('name', role.name).first('id')
 
 			if (!role) {
 				throw new Error(`role '${role.name}' not found`);
 			}
 
-
-			let perm = yield knex(table).transacting(thx).where(rule).first('id')
+		
+			let perm = yield knex(table).transacting(thx).where(_.omit(rule, 'predicate')).first('id')
 
 			if (!perm) {
 				perm = yield knex(table).transacting(thx).insert({
@@ -162,7 +163,7 @@ export class SQLStore implements IStore {
 			}
 
 
-			return yield knex(this._tables.joint)
+			return yield knex(self._tables.joint)
 				.transacting(thx).insert({
 					permission_id: perm.id,
 					role_id: role.id
@@ -172,7 +173,6 @@ export class SQLStore implements IStore {
 
 		}).then((r) => {
 			let role = knex(this._tables.roles).where('id', r[0]).first()
-
 			return role
 		});
 
@@ -198,26 +198,18 @@ export class SQLStore implements IStore {
 
 	_coTransaction(knex: Knex, fn: (knex: Knex, thx: any) => void): Promise<any> {
 		var self = this
-		return new Promise((resolve, reject) => {
-			knex.transaction((thx) => {
+		
+		return knex.transaction((thx) => {
 
-				return co(function *() {
-					return yield fn.call(self, knex, thx)
-				}).then(function(result) {
+			return co(function *() {
+				return yield fn.call(self, knex, thx)
+			}).then(function(result) {
+				return thx.commit()
+				.then(function() {
+					return result;
+				})
+			}).catch(thx.rollback);
 
-					return thx.commit()
-						.then(function() {
-
-							resolve(result)
-						})
-				}).catch(function(e) {
-					thx.rollback().then(function() {
-						reject(e)
-					})
-				});
-
-
-			})
-		})
+		});
 	}
 }

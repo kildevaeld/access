@@ -1,8 +1,8 @@
 {
   "name": "acl",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
-  "main": "index.js",
+  "main": "./lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,13 +11,13 @@
   "dependencies": {
     "co": "^4.6.0",
     "knex": "^0.8.6",
-    "lodash": "^3.10.1",
-    "typescript": "microsoft/typescript"
+    "lodash": "^3.10.1"
   },
   "devDependencies": {
     "gulp": "^3.9.0",
     "gulp-babel": "^5.2.1",
     "gulp-typescript": "^2.8.1",
-    "sqlite3": "^3.0.10"
+    "sqlite3": "^3.1.0",
+    "typescript": "^1.7.0-dev.20150922"
   }
 }

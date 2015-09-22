@@ -38,7 +38,7 @@ export interface IRole {
 
 export interface IACL {
 	role(name: string, inherits?: string): IACL
-	allow(role: string|IRoleable, resource: string|IPermisiveable, action: string, fn?: Predicate): IACL 
+	allow(role: string|IRoleable, resource: string|IPermisiveable, action: string, fn?: Predicate): IACL
 }
 
 export class Queue implements IACL {
@@ -49,7 +49,7 @@ export class Queue implements IACL {
 	constructor (acl:IACL, promise?:any) {
 		this.acl = acl
 		if (role) {
-			
+
 		}
 		this._queue = promise ? [promise] : []
 		this._queue2 =  []
@@ -69,7 +69,7 @@ export class Queue implements IACL {
 	}
 	then(resolve,reject): Promise<any> {
 		this.__done = true;
-		
+
 		return Promise.all(this._queue)
 		.then( () => {
 			let a = this._queue2.map( q => q(this.acl) )
@@ -80,9 +80,10 @@ export class Queue implements IACL {
 
 export class ACL implements IACL {
 	store: IStore
-
+	predicates: {[key: string]: IPermission}
 	constructor(store?: IStore) {
 		this.store = store || new MemoryStore();
+		this.predicates = {};
 	}
 
 	role(name: string, inherits?: string, silent:boolean = true): IACL {
@@ -91,7 +92,7 @@ export class ACL implements IACL {
 		let p =  co(function *() {
 
 			let role = yield self.store.getRole(name)
-			
+
 			if (role) {
 				if (!silent)
 					throw new Error(`Role '${name}'' already exists`);
@@ -115,7 +116,7 @@ export class ACL implements IACL {
 
 			return yield self.store.addRole(role)
 		});
-		
+
 		return new Queue(this, p);
 	}
 
@@ -124,10 +125,10 @@ export class ACL implements IACL {
 		var self = this;
 
 		resource = (resource && (<IPermisiveable>resource).acl_id) ?
-			(<IPermisiveable>resource).acl_id : resource; 
+			(<IPermisiveable>resource).acl_id : resource;
 
 		let p = co(function *() {
-			
+
 			let roles = []
 			if (typeof role !== 'string' && role.acl_id) {
 
@@ -147,17 +148,27 @@ export class ACL implements IACL {
 				resource: resource,
 				predicate: fn
 			};
+			
+			if (fn) {
+				for (let role of roles) {
+					self.predicates[role] = perm;
+				}
+			}
 
 			let proms = roles.map(function(r) {
 				return self.store.addRule(r, perm)
 			})
 
-			return Promise.all(proms).catch( e => {
+			return Promise.all(proms)
+			.then(function () {
+				return roles
+			}).catch( e => {
 				if (!silent)
 					throw e
 				return roles
-			})
-		});
+			});
+		})
+		
 
 		let q = new Queue(this)
 		q._queue2.push(() => {
@@ -176,9 +187,9 @@ export class ACL implements IACL {
 	can(role: string|IRoleable, action: string, resource: string|IPermisiveable): Promise<boolean> {
 
 		var self = this;
-		
+
 		resource = (resource && (<IPermisiveable>resource).acl_id) ?
-			(<IPermisiveable>resource).acl_id : resource; 
+			(<IPermisiveable>resource).acl_id : resource;
 
 		return co(function *() {
 
@@ -196,29 +207,47 @@ export class ACL implements IACL {
 			} else {
 				roles = yield self._getRoles(self.store, role);
 			}
-			
+
 			let perms, parent
 			for (let i = 0, ii = roles.length; i < ii; i++) {
 
 				parent = roles[i];
-				
+
 				perms = yield self.store.getRules(parent,resource,action)
-			
+
 				if (perms.length) {
 					return true;
 				}
 				
+				if (self.predicates[parent]) {
+					let predicate = self.predicates[parent];
+					if (predicate.action == action && predicate.resource == resource){
+						return yield predicate.predicate(role,resource,action);
+					}
+				}
+
 				while (parent = parent.parent) {
 
 					perms = yield self.store.getRules(parent, resource, action);
+
+					if (self.predicates[parent]) {
+					let predicate = self.predicates[parent];
+					if (predicate.action == action && predicate.resource == resource) {
+						let ret = predicate.predicate(role,resource,action);
+						if (ret) return true;
+					}
+						
+					}	
 
 					if (perms.length) return true;
 
 				}
 				
+				
+
 			}
 			return false;
-			
+
 		});
 
 	}

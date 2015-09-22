@@ -3,7 +3,7 @@
 const gulp = require('gulp'),
 	tsc = require('gulp-typescript'),
 	babel = require('gulp-babel');
-	
+
 const tsp = tsc.createProject('./tsconfig.json', {
 	declarationFiles: true,
 	target: 'es6',
@@ -12,14 +12,14 @@ const tsp = tsc.createProject('./tsconfig.json', {
 });
 
 gulp.task('build', function () {
-	
+
 	return tsp.src('./src/**/*.ts')
 	.pipe(tsc(tsp))
 	.pipe(babel({
 		blacklist: ['regenerator', 'es6.classes']
 	}))
 	.pipe(gulp.dest('./lib'));
-	
+
 });
 
 gulp.task('watch', ['build'], function () {

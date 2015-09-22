@@ -42,7 +42,10 @@ co(function *() {
 	.role("admin", null, true)
 	.role('member', 'guest', true)	
 	.allow('member', 'blog', 'view',null,true)
-	.allow(user, test, 'admin');
+	.allow(user, test, 'admin', function *() {
+		console.log(arguments)
+		return true
+	});
 	
 	
 	
